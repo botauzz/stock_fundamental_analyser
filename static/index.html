@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BharatFundamenta — Indian Stock Screener</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root { --bg: #f4f6f9; --card: #ffffff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0; --accent: #4f46e5; --green: #16a34a; --red: #dc2626; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 4rem; }
+    header { background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .brand { font-size: 1.25rem; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; }
+    .search-wrap { position: relative; flex: 1; max-width: 480px; }
+    .search-wrap input { width: 100%; padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; background: #f8fafc; outline: none; }
+    .search-wrap input:focus { border-color: var(--accent); background: #fff; }
+    .dropdown { position: absolute; top: 105%; left: 0; right: 0; background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); max-height: 280px; overflow-y: auto; z-index: 100; }
+    .dropdown div { padding: 0.65rem 1rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
+    .dropdown div:hover { background: #eef2ff; }
+    .container { max-width: 1120px; margin: 1.5rem auto; padding: 0 1rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+    .top-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; }
+    .company-title { margin: 0; font-size: 1.75rem; font-weight: 700; }
+    .badges { font-size: 0.85rem; color: var(--muted); margin-top: 0.25rem; }
+    .price-box { text-align: right; }
+    .price-main { font-size: 1.75rem; font-weight: 700; }
+    .up { color: var(--green); } .down { color: var(--red); }
+    .top-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+    @media (max-width: 800px) { .top-grid { grid-template-columns: 1fr; } }
+    .ratios-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; background: #f8fafc; padding: 1rem; border-radius: 10px; border: 1px solid var(--border); }
+    @media (max-width: 600px) { .ratios-grid { grid-template-columns: repeat(2, 1fr); } }
+    .ratio-item { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.5rem; border-bottom: 1px dashed #e2e8f0; font-size: 0.88rem; }
+    .ratio-label { color: var(--muted); }
+    .ratio-val { font-weight: 600; }
+    .about-box { font-size: 0.88rem; color: #475569; line-height: 1.55; max-height: 210px; overflow-y: auto; }
+    .chart-controls { display: flex; gap: 0.4rem; margin-bottom: 1rem; }
+    .btn-tf { padding: 0.35rem 0.75rem; border: 1px solid var(--border); background: #fff; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+    .btn-tf.active, .btn-tf:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 700px) { .pros-cons { grid-template-columns: 1fr; } }
+    .pros-card { border-left: 4px solid var(--green); background: #f0fdf4; padding: 1rem 1.25rem; border-radius: 8px; }
+    .cons-card { border-left: 4px solid var(--red); background: #fef2f2; padding: 1rem 1.25rem; border-radius: 8px; }
+    .pros-card h3 { color: #15803d; margin-top: 0; font-size: 1rem; }
+    .cons-card h3 { color: #b91c1c; margin-top: 0; font-size: 1rem; }
+    .pros-card ul, .cons-card ul { margin: 0; padding-left: 1.2rem; font-size: 0.9rem; line-height: 1.6; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; font-weight: 600; color: #334155; }
+    th { background: #f8fafc; color: var(--muted); font-weight: 600; }
+    .section-title { margin: 0 0 0.25rem 0; font-size: 1.2rem; }
+    .section-sub { margin: 0 0 1rem 0; font-size: 0.82rem; color: var(--muted); }
+    .val-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .val-box { background: #f8fafc; border: 1px solid var(--border); padding: 1rem; border-radius: 8px; }
+    .val-big { font-size: 1.5rem; font-weight: 700; color: var(--accent); margin-top: 0.25rem; }
+    .empty-state { text-align: center; padding: 4rem 1rem; color: var(--muted); }
+    .quick-pills button { margin: 0.25rem; padding: 0.4rem 0.9rem; border-radius: 20px; border: 1px solid var(--border); background: #fff; cursor: pointer; font-weight: 600; color: var(--accent); }
+    .quick-pills button:hover { background: #eef2ff; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">BharatFundamenta</div>
+    <div class="search-wrap">
+      <input id="search" placeholder="Search for a company (e.g., RELIANCE, TCS, HDFCBANK, ZOMATO)..." autocomplete="off" />
+      <div id="results" class="dropdown" style="display:none;"></div>
+    </div>
+  </header>
+
+  <div class="container" id="dashboard">
+    <div class="card empty-state">
+      <h2>Indian Stock Screener & Valuation Lab</h2>
+      <p>Search any of the 2,600+ NSE listed companies above, or try one of these:</p>
+      <div class="quick-pills">
+        <button onclick="loadStock('RELIANCE')">RELIANCE</button>
+        <button onclick="loadStock('TCS')">TCS</button>
+        <button onclick="loadStock('HDFCBANK')">HDFCBANK</button>
+        <button onclick="loadStock('ITC')">ITC</button>
+        <button onclick="loadStock('INFY')">INFY</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById("search");
+    const resultsDiv = document.getElementById("results");
+    const dash = document.getElementById("dashboard");
+    let currentStock = null;
+    let priceChart = null;
+
+    searchInput.addEventListener("input", async (e) => {
+      const q = e.target.value.trim();
+      if (q.length < 2) { resultsDiv.style.display = "none"; return; }
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      const stocks = await res.json();
+      if (!stocks.length) { resultsDiv.style.display = "none"; return; }
+      resultsDiv.innerHTML = stocks.map(s =>
+        `<div onclick="loadStock('${s.symbol}')"><strong>${s.symbol}</strong> — ${s.name}</div>`
+      ).join("");
+      resultsDiv.style.display = "block";
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".search-wrap")) resultsDiv.style.display = "none";
+    });
+
+    async function loadStock(symbol) {
+      resultsDiv.style.display = "none";
+      searchInput.value = symbol;
+      dash.innerHTML = `<div class="card empty-state"><h3>Fetching live NSE data for ${symbol}...</h3><p>Loading ratios, price history, and financial statements...</p></div>`;
+      const res = await fetch(`/api/stock/${encodeURIComponent(symbol)}`);
+      if (!res.ok) {
+        dash.innerHTML = `<div class="card empty-state"><h3>Could not load data for ${symbol}</h3><p>Try another NSE ticker.</p></div>`;
+        return;
+      }
+      currentStock = await res.json();
+      renderDashboard();
+      loadChart(symbol, "1y");
+    }
+
+    async function loadChart(symbol, period, btnEl) {
+      if (btnEl) {
+        document.querySelectorAll(".btn-tf").forEach(b => b.classList.remove("active"));
+        btnEl.classList.add("active");
+      }
+      const res = await fetch(`/api/chart/${encodeURIComponent(symbol)}?period=${period}`);
+      const data = await res.json();
+      const ctx = document.getElementById("stockChart").getContext("2d");
+      if (priceChart) priceChart.destroy();
+      priceChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.dates,
+          datasets: [{
+            label: "Price (₹)",
+            data: data.prices,
+            borderColor: "#4f46e5",
+            backgroundColor: "rgba(79, 70, 229, 0.08)",
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: true,
+            tension: 0.1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { x: { ticks: { maxTicksLimit: 8 } } }
+        }
+      });
+    }
+
+    function renderTable(title, sub, stmt) {
+      if (!stmt || !stmt.rows || !stmt.rows.length) {
+        return `<div class="card"><h3 class="section-title">${title}</h3><p class="section-sub">Data not available from Yahoo Finance for this ticker.</p></div>`;
+      }
+      return `
+        <div class="card">
+          <h3 class="section-title">${title}</h3>
+          <p class="section-sub">${sub}</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Metric</th>${stmt.columns.map(c => `<th>${c}</th>`).join("")}</tr></thead>
+              <tbody>
+                ${stmt.rows.map(r => `<tr><td>${r.metric}</td>${r.values.map(v => `<td>${v === "—" ? "—" : v.toLocaleString()}</td>`).join("")}</tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    function calcDCF(fcfPerShare, growthPct, discountPct) {
+      if (fcfPerShare <= 0) return "N/A (Negative FCF)";
+      const g = growthPct / 100, r = discountPct / 100, termG = 0.04;
+      let total = 0, cf = fcfPerShare;
+      for (let i = 1; i <= 5; i++) { cf *= (1 + g); total += cf / Math.pow(1 + r, i); }
+      total += ((cf * (1 + termG)) / (r - termG)) / Math.pow(1 + r, 5);
+      return "₹" + total.toFixed(2);
+    }
+
+    function renderDashboard() {
+      const s = currentStock;
+      const chgClass = s.change_pct >= 0 ? "up" : "down";
+      const chgSign = s.change_pct >= 0 ? "+" : "";
+
+      dash.innerHTML = `
+        <div class="card">
+          <div class="top-header">
+            <div>
+              <h1 class="company-title">${s.name}</h1>
+              <div class="badges">NSE: <strong>${s.symbol}</strong> &nbsp;|&nbsp; ${s.sector} &bull; ${s.industry}</div>
+            </div>
+            <div class="price-box">
+              <div class="price-main">₹${s.price.toLocaleString()}</div>
+              <div class="${chgClass}"><strong>${chgSign}${s.change_pct}%</strong> (1D)</div>
+            </div>
+          </div>
+
+          <div class="top-grid">
+            <div class="ratios-grid">
+              <div class="ratio-item"><span class="ratio-label">Market Cap</span><span class="ratio-val">₹${s.market_cap_cr.toLocaleString()} Cr</span></div>
+              <div class="ratio-item"><span class="ratio-label">Current Price</span><span class="ratio-val">₹${s.price}</span></div>
+              <div class="ratio-item"><span class="ratio-label">High / Low</span><span class="ratio-val">₹${s.high_52w} / ${s.low_52w}</span></div>
+              <div class="ratio-item"><span class="ratio-label">Stock P/E</span><span class="ratio-val">${s.pe || "—"}</span></div>
+              <div class="ratio-item"><span class="ratio-label">Book Value</span><span class="ratio-val">₹${s.bvps}</span></div>
+              <div class="ratio-item"><span class="ratio-label">Dividend Yield</span><span class="ratio-val">${s.div_yield}%</span></div>
+              <div class="ratio-item"><span class="ratio-label">ROE</span><span class="ratio-val">${s.roe}%</span></div>
+              <div class="ratio-item"><span class="ratio-label">Debt to Equity</span><span class="ratio-val">${s.debt_to_equity}</span></div>
+              <div class="ratio-item"><span class="ratio-label">EPS (TTM)</span><span class="ratio-val">₹${s.eps}</span></div>
+            </div>
+            <div class="about-box">
+              <strong>ABOUT</strong><br/>${s.about}
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="chart-controls">
+            <button class="btn-tf" onclick="loadChart('${s.symbol}','1mo',this)">1M</button>
+            <button class="btn-tf" onclick="loadChart('${s.symbol}','6mo',this)">6M</button>
+            <button class="btn-tf active" onclick="loadChart('${s.symbol}','1y',this)">1Y</button>
+            <button class="btn-tf" onclick="loadChart('${s.symbol}','3y',this)">3Y</button>
+            <button class="btn-tf" onclick="loadChart('${s.symbol}','5y',this)">5Y</button>
+            <button class="btn-tf" onclick="loadChart('${s.symbol}','max',this)">Max</button>
+          </div>
+          <canvas id="stockChart" height="90"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="pros-cons">
+            <div class="pros-card">
+              <h3>PROS</h3>
+              <ul>${s.pros.map(p => `<li>${p}</li>`).join("")}</ul>
+            </div>
+            <div class="cons-card">
+              <h3>CONS</h3>
+              <ul>${s.cons.map(c => `<li>${c}</li>`).join("")}</ul>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="section-title">Pro Investor Matrix &amp; Quality Scores</h3>
+          <p class="section-sub">Institutional valuation, earnings quality, and financial safety indicators</p>
+          <div class="val-grid">
+            <div class="val-box">
+              <div>Piotroski F-Score</div>
+              <div class="val-big" style="color:${s.pro.f_score >= 7 ? 'var(--green)' : (s.pro.f_score <= 3 ? 'var(--red)' : 'var(--accent)')};">${s.pro.f_score} / 9</div>
+            </div>
+            <div class="val-box">
+              <div>Altman Z-Score</div>
+              <div class="val-big">${s.pro.z_score} <span style="font-size:0.85rem;color:var(--muted);">(${s.pro.z_zone})</span></div>
+            </div>
+            <div class="val-box"><div>ROCE</div><div class="val-big">${s.pro.roce === "—" ? "—" : s.pro.roce + "%"}</div></div>
+            <div class="val-box"><div>EV / EBITDA</div><div class="val-big">${s.pro.ev_ebitda}</div></div>
+            <div class="val-box"><div>PEG Ratio</div><div class="val-big">${s.pro.peg}</div></div>
+            <div class="val-box"><div>Interest Coverage</div><div class="val-big">${s.pro.int_cov === "—" ? "—" : s.pro.int_cov + "x"}</div></div>
+            <div class="val-box"><div>FCF Yield</div><div class="val-big">${s.pro.fcf_yield === "—" ? "—" : s.pro.fcf_yield + "%"}</div></div>
+            <div class="val-box"><div>Cash Conversion (CFO/PAT)</div><div class="val-big">${s.pro.cash_conv === "—" ? "—" : s.pro.cash_conv + "x"}</div></div>
+          </div>
+          <details style="margin-top:0.75rem;font-size:0.88rem;">
+            <summary style="cursor:pointer;font-weight:600;color:var(--accent);">View 9-Point Piotroski F-Score Breakdown</summary>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0.4rem;margin-top:0.75rem;">
+              ${Object.entries(s.pro.f_checks).map(([k, v]) => `<div>${v ? "✅" : "❌"} ${k}</div>`).join("")}
+            </div>
+          </details>
+        </div>
+        ${renderTable("Quarterly Results", "Consolidated Figures in ₹ Crores", s.quarterly)}
+        ${renderTable("Profit & Loss", "Consolidated Annual Figures in ₹ Crores", s.annual_pl)}
+        ${renderTable("Balance Sheet", "Consolidated Figures in ₹ Crores", s.balance_sheet)}
+        ${renderTable("Cash Flows", "Consolidated Figures in ₹ Crores", s.cash_flow)}
+
+        <div class="card">
+          <h3 class="section-title">Valuation & Interactive DCF Lab</h3>
+          <p class="section-sub">Features beyond Screener.in</p>
+          <div class="val-grid">
+            <div class="val-box"><div>Fundamental Health Score</div><div class="val-big">${s.health_score} / 100</div></div>
+            <div class="val-box"><div>Graham Number</div><div class="val-big">₹${s.graham_number}</div></div>
+            <div class="val-box"><div>FCF per Share</div><div class="val-big">₹${s.fcf_per_share}</div></div>
+            <div class="val-box"><div>Estimated Intrinsic Value</div><div class="val-big" id="dcfOut" style="color:var(--green);">${calcDCF(s.fcf_per_share, 12, 11)}</div></div>
+          </div>
+          <label><strong>5-Year FCF Growth Rate:</strong> <span id="gVal">12</span>%</label>
+          <input type="range" id="gSlider" min="2" max="25" value="12" style="width:100%;" oninput="updateDCF()" />
+        </div>
+      `;
+    }
+
+    function updateDCF() {
+      const g = Number(document.getElementById("gSlider").value);
+      document.getElementById("gVal").innerText = g;
+      document.getElementById("dcfOut").innerText = calcDCF(currentStock.fcf_per_share, g, 11);
+    }
+  </script>
+</body>
+</html>
